@@ -1,0 +1,117 @@
+version: '3.8'
+
+services:
+  client:
+    build:
+      context: ./client
+      target: runner
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+
+  user-service:
+    build:
+      context: ./user
+      target: production
+    ports:
+      - "8001:8001"
+    environment:
+      - PORT=8001
+      - JWT_SECRET=loginusersecret
+      - REDIS_HOST=redis
+    depends_on:
+      - redis
+      - user-db
+
+  product-service:
+    build:
+      context: ./product
+      target: production
+    ports:
+      - "8002:8002"
+    environment:
+      - PORT=8002
+      - REDIS_HOST=redis
+    depends_on:
+      - redis
+      - product-db
+
+  order-service:
+    build:
+      context: ./order
+      target: production
+    ports:
+      - "8003:8003"
+    environment:
+      - PORT=8003
+      - REDIS_HOST=redis
+    depends_on:
+      - redis
+      - order-db
+
+  user-db:
+    image: postgres:latest
+    container_name: user-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: user_db
+    volumes:
+      - user-db:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  product-db:
+    image: postgres:latest
+    container_name: product-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: product_db
+    volumes:
+      - product-db:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  order-db:
+    image: postgres:latest
+    container_name: order-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: order_db
+    volumes:
+      - order-db:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  user-adminer:
+    image: adminer
+    container_name: user-adminer
+    depends_on:
+      - user-db
+      - product-db
+      - order-db
+    ports:
+      - "8081:8080"
+    restart: unless-stopped
+
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - 6379:6379
+    restart: unless-stopped
+
+  redisinsight:
+    image: redislabs/redisinsight:latest
+    ports:
+      - 8082:8001
+    depends_on:
+      - redis
+
+volumes:
+  user-db:
+    driver: local
+  product-db:
+    driver: local
+  order-db:
+    driver: local
